@@ -27,13 +27,8 @@ export default function MyAppointmentsPage() {
     const loadAppointments = async (userId: number) => {
         try {
             setLoading(true);
-            // ดึงคิวทั้งหมดแล้วกรองเฉพาะของ User คนนี้ (หรือถ้า backend มี api.getUserAppointments ก็ใช้ได้เลย)
-            const allAppts = await api.getAllAppointments();
-            const myAppts = allAppts.filter((a: any) => a.user?.id === userId || a.userId === userId);
-
-            // เรียงจากใหม่ไปเก่า (ID มากไปน้อย)
-            myAppts.sort((a, b) => b.id - a.id);
-
+            //  เรียก API ดึงเฉพาะคิวของ User คนนี้โดยตรงจาก Backend (ปลอดภัย ไม่เห็นข้อมูลคนอื่น)
+            const myAppts = await api.getUserAppointments(userId);
             setAppointments(myAppts);
         } catch (err) {
             console.error(err);
@@ -45,7 +40,8 @@ export default function MyAppointmentsPage() {
     const handleCancel = async (id: number) => {
         if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการยกเลิกการนัดหมายนี้?')) return;
         try {
-            await api.updateAppointmentStatus(id, { status: 'CANCELLED' });
+            //  เรียกใช้ฟังก์ชัน cancelAppointment โดยตรง
+            await api.cancelAppointment(id);
             alert('ยกเลิกการนัดหมายเรียบร้อยแล้ว');
             if (user) loadAppointments(user.id);
         } catch (err: any) {
@@ -58,7 +54,6 @@ export default function MyAppointmentsPage() {
     return (
         <div className="min-h-screen bg-slate-50 font-sans text-slate-800 pb-20">
             <Navbar />
-
             <main className="max-w-4xl mx-auto px-6 py-10">
                 <div className="flex justify-between items-end mb-8 border-b border-slate-200 pb-4">
                     <div>
@@ -86,25 +81,20 @@ export default function MyAppointmentsPage() {
                 ) : (
                     <div className="space-y-6">
                         {appointments.map((appt) => {
-                            // ดึงราคาและคำนวณส่วนลด
                             const price = appt.vaccine?.price || 0;
                             const discountPrice = appt.vaccine?.discountPrice;
                             const finalPrice = discountPrice && discountPrice > 0 ? discountPrice : price;
-
-                            // เช็กประเภทสัตว์หรือคน
-                            const isPet = (appt.recipient as any)?.type === 'PET';
+                            const isPet = appt.recipient?.type === 'PET';
 
                             return (
                                 <div key={appt.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6 relative">
-
-                                    {/* แถบด้านบน: รหัสการจอง และ ป้ายสถานะ */}
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">รหัสการจอง: {appt.appointmentCode || `APT-${appt.id}`}</span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                                รหัสการจอง: {appt.appointmentCode || `APT-${appt.id}`}
+                                            </span>
                                             <h2 className="text-lg font-black text-slate-800 mt-1">{appt.vaccine?.name}</h2>
                                         </div>
-
-                                        {/* 🔥 ป้ายสถานะ เปลี่ยนสีและข้อความตามฐานข้อมูลเป๊ะๆ */}
                                         <div>
                                             {appt.status === 'PENDING' && <span className="bg-amber-50 text-amber-600 border border-amber-200 text-xs font-bold px-3 py-1.5 rounded-full">รอดำเนินการ (Pending)</span>}
                                             {appt.status === 'CONFIRMED' && <span className="bg-sky-50 text-sky-600 border border-sky-200 text-xs font-bold px-3 py-1.5 rounded-full">ยืนยันแล้ว (Confirmed)</span>}
@@ -113,15 +103,18 @@ export default function MyAppointmentsPage() {
                                         </div>
                                     </div>
 
-                                    {/* แถบข้อมูลตรงกลาง 3 กล่อง */}
                                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                                         <div className="bg-slate-50 p-4 rounded-xl">
                                             <p className="text-[10px] text-slate-400 font-bold mb-1">ผู้รับการฉีด</p>
-                                            <p className="text-sm font-bold text-slate-700">{appt.recipient?.name} <span className="font-normal text-slate-500">{isPet ? '(สัตว์เลี้ยง 🐾)' : '👤 (คน)'}</span></p>
+                                            <p className="text-sm font-bold text-slate-700">
+                                                {appt.recipient?.name} <span className="font-normal text-slate-500">{isPet ? '(สัตว์เลี้ยง 🐾)' : '👤 (คน)'}</span>
+                                            </p>
                                         </div>
                                         <div className="bg-slate-50 p-4 rounded-xl">
                                             <p className="text-[10px] text-slate-400 font-bold mb-1">วันและเวลานัดหมาย</p>
-                                            <p className="text-sm font-bold text-slate-700">{appt.appointmentDate} <span className="font-normal text-slate-500">เวลา {appt.timeSlot} น.</span></p>
+                                            <p className="text-sm font-bold text-slate-700">
+                                                {appt.appointmentDate} <span className="font-normal text-slate-500">เวลา {appt.timeSlot} น.</span>
+                                            </p>
                                         </div>
                                         <div className="bg-slate-50 p-4 rounded-xl">
                                             <p className="text-[10px] text-slate-400 font-bold mb-1">ยอดชำระ</p>
@@ -129,13 +122,13 @@ export default function MyAppointmentsPage() {
                                         </div>
                                     </div>
 
-                                    {/* หมายเหตุ */}
                                     <div className="bg-amber-50/50 border border-amber-100 p-3 rounded-lg flex items-start gap-2 mb-4">
                                         <span className="text-sm">📝</span>
-                                        <p className="text-xs text-slate-600 font-medium">หมายเหตุ: <span className="font-normal text-slate-500">{appt.notes || '-'}</span></p>
+                                        <p className="text-xs text-slate-600 font-medium">
+                                            หมายเหตุ: <span className="font-normal text-slate-500">{appt.notes || '-'}</span>
+                                        </p>
                                     </div>
 
-                                    {/* ปุ่มยกเลิกนัดหมาย (จะแสดงเฉพาะคิวที่ยังไม่เสร็จและยังไม่ถูกยกเลิก) */}
                                     {appt.status !== 'COMPLETED' && appt.status !== 'CANCELLED' && (
                                         <div className="flex justify-end pt-2">
                                             <button
@@ -146,7 +139,6 @@ export default function MyAppointmentsPage() {
                                             </button>
                                         </div>
                                     )}
-
                                 </div>
                             );
                         })}

@@ -64,7 +64,7 @@ export default function RegisterPage() {
             setEmailError('กรุณากรอกอีเมล');
             hasError = true;
         } else if (!EMAIL_REGEX.test(email)) {
-            setEmailError('อีเมลต้องเป็นตัวอักษรภาษาอังกฤษ และมีรูปแบบ name@example.com');
+            setEmailError('อีเมลต้องเป็นตัวอักษรภาษาอังกฤษ และมีรูปแบบ user@gmail.com');
             hasError = true;
         }
 
@@ -72,7 +72,7 @@ export default function RegisterPage() {
             setPasswordError('กรุณากรอกรหัสผ่าน');
             hasError = true;
         } else if (!PASSWORD_ASCII_REGEX.test(password)) {
-            setPasswordError('รหัสผ่านใช้ได้เฉพาะภาษาอังกฤษ ตัวเลข และสัญลักษณ์ (ไม่มีช่องว่าง) กรุณาตรวจสอบว่าสลับคีย์บอร์ดเป็น EN แล้ว');
+            setPasswordError('รหัสผ่านใช้ได้เฉพาะภาษาอังกฤษ ตัวเลข และสัญลักษณ์');
             hasError = true;
         } else if (password.length < 8) {
             setPasswordError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร');
